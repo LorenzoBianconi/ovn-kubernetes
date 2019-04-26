@@ -212,32 +212,37 @@ func RunOVNNbctlUnix(args ...string) (string, string, error) {
 		stderr.String(), err
 }
 
-// RunOVNNbctlWithTimeout runs command via ovn-nbctl with a specific timeout
-func RunOVNNbctlWithTimeout(timeout int, args ...string) (string, string,
+// RunOVNCmdWithTimeout runs command via specified path with a specific timeout
+func RunOVNCmdWithTimeout(timeout int, path string, auth config.OvnAuthConfig, args ...string) (string, string,
 	error) {
 	var cmdArgs []string
-	if config.OvnNorth.Scheme == config.OvnDBSchemeSSL {
+	if auth.Scheme == config.OvnDBSchemeSSL {
 		cmdArgs = []string{
-			fmt.Sprintf("--private-key=%s", config.OvnNorth.PrivKey),
-			fmt.Sprintf("--certificate=%s", config.OvnNorth.Cert),
-			fmt.Sprintf("--bootstrap-ca-cert=%s", config.OvnNorth.CACert),
-			fmt.Sprintf("--db=%s", config.OvnNorth.GetURL()),
+			fmt.Sprintf("--private-key=%s", auth.PrivKey),
+			fmt.Sprintf("--certificate=%s", auth.Cert),
+			fmt.Sprintf("--bootstrap-ca-cert=%s", auth.CACert),
+			fmt.Sprintf("--db=%s", auth.GetURL()),
 		}
-	} else if config.OvnNorth.Scheme == config.OvnDBSchemeTCP {
+	} else if auth.Scheme == config.OvnDBSchemeTCP {
 		cmdArgs = []string{
-			fmt.Sprintf("--db=%s", config.OvnNorth.GetURL()),
+			fmt.Sprintf("--db=%s", auth.GetURL()),
 		}
 	}
 
 	cmdArgs = append(cmdArgs, fmt.Sprintf("--timeout=%d", timeout))
 	cmdArgs = append(cmdArgs, args...)
-	stdout, stderr, err := runOVNretry(runner.nbctlPath, cmdArgs...)
+	stdout, stderr, err := runOVNretry(path, cmdArgs...)
 	return strings.Trim(strings.TrimSpace(stdout.String()), "\""), stderr.String(), err
+}
+
+// RunOVNNbctlWithTimeout runs command via ovn-nbctl with a specific timeout
+func RunOVNNbctlWithTimeout(timeout int, args ...string) (string, string, error) {
+	return RunOVNCmdWithTimeout(timeout, runner.nbctlPath, config.OvnNorth, args...)
 }
 
 // RunOVNNbctl runs a command via ovn-nbctl.
 func RunOVNNbctl(args ...string) (string, string, error) {
-	return RunOVNNbctlWithTimeout(ovsCommandTimeout, args...)
+	return RunOVNCmdWithTimeout(ovsCommandTimeout, runner.nbctlPath, config.OvnNorth, args...)
 }
 
 // RunOVNSbctlUnix runs command via ovn-sbctl, with ovn-sbctl using the unix
@@ -275,7 +280,7 @@ func RunOVNSbctlWithTimeout(timeout int, args ...string) (string, string,
 
 // RunOVNSbctl runs a command via ovn-sbctl.
 func RunOVNSbctl(args ...string) (string, string, error) {
-	return RunOVNSbctlWithTimeout(ovsCommandTimeout, args...)
+	return RunOVNCmdWithTimeout(ovsCommandTimeout, runner.sbctlPath, config.OvnSouth, args...)
 }
 
 // RunIP runs a command via the iproute2 "ip" utility

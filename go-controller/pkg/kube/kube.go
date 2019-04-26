@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 // Interface represents the exported methods for dealing with getting/setting
@@ -26,6 +27,7 @@ type Interface interface {
 	GetService(namespace, name string) (*kapi.Service, error)
 	GetEndpoints(namespace string) (*kapi.EndpointsList, error)
 	GetNamespaces() (*kapi.NamespaceList, error)
+	Events() kv1core.EventInterface
 }
 
 // Kube is the structure object upon which the Interface is implemented
@@ -106,4 +108,8 @@ func (k *Kube) GetEndpoints(namespace string) (*kapi.EndpointsList, error) {
 // GetNamespaces returns all Namespace resource from kubernetes apiserver
 func (k *Kube) GetNamespaces() (*kapi.NamespaceList, error) {
 	return k.KClient.CoreV1().Namespaces().List(metav1.ListOptions{})
+}
+
+func (k *Kube) Events() kv1core.EventInterface {
+	return k.KClient.CoreV1().Events("")
 }
